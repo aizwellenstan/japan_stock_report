@@ -66,3 +66,25 @@ def compute_metrics(nav_series, dates):
         "sharpe_ratio": sharpe_ratio,
         "max_drawdown": max_drawdown
     }
+
+
+# --- Main ---
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Run backtest with model name") 
+    parser.add_argument("-f", "--file", help="Model name (e.g. mc_top11)", required=False) 
+    args = parser.parse_args() 
+    model_name = args.file if args.file else "short_top5"
+    strategy_file = f"{rootPath}/backtest/data/model/{model_name}.csv"
+    all_df, strategy_name = load_strategy_csv(strategy_file)
+    codes = all_df["code"].unique().to_list()
+    price_dic = load_database_dic(codes)
+    result = run_backtest_swing(all_df, strategy_name, price_dic)
+    if result:
+        print(f"Strategy: {result['model']}")
+        print("Metrics:", result["metrics"])
+        print(result["nav_df"].tail())
+        os.makedirs(f"{rootPath}/backtest/data/backtest_result", exist_ok=True)
+        result["nav_df"].write_csv(f"{rootPath}/backtest/data/backtest_result/{strategy_name}_nav.csv")
+        pl.DataFrame([result["metrics"]]).write_csv(f"{rootPath}/backtest/data/backtest_result/{strategy_name}_metrics.csv")
+        print("NAV and metrics written to backtest_result/")
